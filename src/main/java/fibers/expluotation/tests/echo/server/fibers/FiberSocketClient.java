@@ -1,31 +1,35 @@
 package fibers.expluotation.tests.echo.server.fibers;
 
 import fibers.expluotation.tests.echo.server.SocketUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class FiberSocketClient {
-    private final static String greeting = "Hello, newborn fiber! ";
-
+    private final static String greeting = "";
+    private final static Logger logger = LoggerFactory.getLogger("FiberSocketClient");
     public static void main(String[] args) {
-        SocketAddress address = new InetSocketAddress("localhost", 9090);
+        SocketAddress address = new InetSocketAddress("localhost", Integer.parseInt(args[0]));
 
-        List<Fiber<?>> fibers = IntStream.range(0, 200)
-                .mapToObj(i -> Fiber.schedule(() -> {
-                    try {
-                        SocketChannel socketChannel = SocketChannel.open(address);
-                        SocketUtils.sendTo(socketChannel, greeting + i);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }))
-                .collect(Collectors.toList());
+        List<Fiber<?>> fibers = new ArrayList<>();
+        int bound = Integer.parseInt(args[1]);
+        for (int i = 0; i < bound; i++) {
+            logger.info("client "+ i + " started");
+
+            String num = Integer.toString(i);
+            for (int j = 0; j < Integer.parseInt(args[2]); j++) {
+                int finalJ = j;
+                Fiber schedule = Fiber.schedule(() -> {
+                    SocketUtils.sendTo(address, greeting, num, finalJ);
+                });
+                fibers.add(schedule);
+            }
+        }
         fibers.forEach(Fiber::awaitTermination);
+        logger.info("client end");
     }
 }
